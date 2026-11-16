@@ -141,10 +141,21 @@ async function alert($: EngineInterface, w: Window, now: number) {
   await $.store.set(key, a)
 }
 
+/** Reads the latest limits the engine holds and shows them. */
+async function refresh($: EngineInterface) {
+  const u = await $.session.usage()
+  if (u.rateLimits.length) await ingest($, u.rateLimits)
+}
+
 /** Once a minute: clear windows that have reset, and redraw so the countdown and pace move. */
 async function tick($: EngineInterface) {
   const now = await $.clock.now()
   const ws = await read($, windows)
+  if (ws.length === 0) {
+    // Nothing shown yet (just enabled, or no reading so far): ask for the latest figures.
+    await refresh($)
+    return
+  }
   const isAnyReset = ws.some(w => w.resetsAt && Date.parse(w.resetsAt) <= now)
   if (isAnyReset) {
     // Keep estTotal (the window's size doesn't change); the next reply brings the new reset time.
@@ -158,16 +169,28 @@ async function tick($: EngineInterface) {
   }
 }
 
+let timer: { cancel: () => void } | undefined
+
+/** Starts the minute timer if it isn't running, and fills the band if it's empty. */
+async function ensure($: EngineInterface) {
+  if (!timer) timer = $.clock.every(60_000, () => void tick($))
+  if ((await read($, windows)).length === 0) await refresh($)
+}
+
 export const register: Register = on => {
-  let timer: { cancel: () => void } | undefined
 
   on('session.start', async ($, e, next) => {
     const r = await next(e)
     timer?.cancel()
-    timer = $.clock.every(60_000, () => void tick($))
-    const u = await $.session.usage()
-    if (u.rateLimits.length) await ingest($, u.rateLimits)
+    timer = undefined
+    await ensure($)
     return r
+  })
+
+  // A mod enabled mid-session may miss session.start: catch up on the next prompt.
+  on('prompt.submit', async ($, e, next) => {
+    await ensure($)
+    return next(e)
   })
 
   // Count tokens toward each window (subagents too: they draw on the same limits).
@@ -183,6 +206,7 @@ export const register: Register = on => {
         await $.store.set(calibKey(kind), c)
       }
     }
+    await ensure($)
     return next(e)
   })
 
