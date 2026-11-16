@@ -1,0 +1,5 @@
+{
+  "name": "headroom",
+  "owner": { "name": "rudkul" },
+  "plugins": [{ "name": "headroom", "source": "./" }]
+}

@@ -1,0 +1,7 @@
+{
+  "name": "headroom",
+  "version": "1.0.0",
+  "description": "A compact band above the prompt showing your 5-hour and weekly limits: usage, estimated tokens left, pace, and reset times",
+  "license": "MIT",
+  "types": "./types/index.d.ts"
+}
