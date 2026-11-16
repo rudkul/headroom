@@ -29,3 +29,13 @@ claude plugin install headroom@headroom --scope user
 ```
 
 In the desktop app, where `/plugin` does not run: click + next to the prompt box, then Plugins, Add marketplace with `rudkul/headroom`, then Add plugin.
+
+## Update
+
+To get the latest version, from a shell:
+
+```bash
+claude plugin update headroom@headroom
+```
+
+Then run `/reload-plugins` in an open session, or start a new one.
